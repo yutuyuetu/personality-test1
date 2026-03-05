@@ -895,48 +895,91 @@
     }
     
     // ===== 核心验证逻辑（修复版）=====
+    // ===== 邀请码验证（兼容云加速版）=====
     function checkInviteCode() {
-        var params = new URLSearchParams(window.location.search);
-        var code = params.get('code');
-        
-        // 调试模式直接通过
-        if (CONFIG.DEBUG) {
-            console.log('调试模式：跳过验证');
-            return true;
+    var params = new URLSearchParams(window.location.search);
+    var code = params.get('code');
+    
+    // 调试模式直接通过
+    if (CONFIG.DEBUG) {
+        console.log('调试模式：跳过验证');
+        return true;
+    }
+    
+    // 【新增】从 sessionStorage 读取之前保存的邀请码
+    var storedCode = sessionStorage.getItem('used_code');
+    var isAuthorized = sessionStorage.getItem('authorized') === 'true';
+    
+    // 情况1：已经授权过，直接通过
+    if (isAuthorized && storedCode) {
+        return true;
+    }
+    
+    // 情况2：有邀请码参数（正常访问）
+    if (code) {
+        if (isCodeValid(code)) {
+            var deviceId = getDeviceFingerprint();
+            saveUsageRecord(code, deviceId);
+            
+            // 存储授权信息
+            sessionStorage.setItem('authorized', 'true');
+            sessionStorage.setItem('used_code', code);
+            
+            // 跳转到干净URL（去掉参数）
+            window.location.href = window.location.pathname;
+            return false;
+        } else {
+            showCodeInput('邀请码无效或已用完');
+            return false;
         }
+    }
+    
+    // 情况3：【新增】检查 URL 中是否包含分享参数（可能是云加速丢参数后的残留）
+    if (window.location.href.includes('share=1') || window.location.href.includes('code=')) {
+        // 尝试从完整 URL 中提取参数（手动解析）
+        var fullUrl = window.location.href;
+        var codeMatch = fullUrl.match(/[?&]code=([^&]+)/);
+        var shareMatch = fullUrl.match(/[?&]share=1/);
         
-        // 【修复】检查是否已授权
-        var isAuthorized = sessionStorage.getItem('authorized') === 'true';
-        var usedCode = sessionStorage.getItem('used_code');
-        
-        // 情况1：已经授权过，直接通过
-        if (isAuthorized && usedCode) {
-            return true;
-        }
-        
-        // 情况2：有邀请码参数
-        if (code) {
-            if (isCodeValid(code)) {
+        if (codeMatch) {
+            var extractedCode = codeMatch[1];
+            if (isCodeValid(extractedCode)) {
                 var deviceId = getDeviceFingerprint();
-                saveUsageRecord(code, deviceId);
-                
-                // 存储授权信息
+                saveUsageRecord(extractedCode, deviceId);
                 sessionStorage.setItem('authorized', 'true');
-                sessionStorage.setItem('used_code', code);
-                
-                // 跳转到干净URL（去掉参数）
+                sessionStorage.setItem('used_code', extractedCode);
                 window.location.href = window.location.pathname;
-                return false; // 跳转后停止执行
-            } else {
-                showCodeInput('邀请码无效或已用完');
                 return false;
             }
         }
         
-        // 情况3：没有邀请码且未授权，显示输入框
-        showCodeInput();
-        return false;
+        if (shareMatch) {
+            // 分享链接无邀请码，需要验证设备指纹
+            var fpMatch = fullUrl.match(/fp=([^&]+)/);
+            var expMatch = fullUrl.match(/exp=([^&]+)/);
+            if (fpMatch && expMatch) {
+                var fp = fpMatch[1];
+                var exp = parseInt(expMatch[1]);
+                var now = Date.now();
+                
+                if (now <= exp) {
+                    var currentFp = getDeviceFingerprint();
+                    if (fp === currentFp) {
+                        // 设备匹配，允许访问
+                        sessionStorage.setItem('authorized', 'true');
+                        sessionStorage.setItem('used_code', 'share_link');
+                        window.location.href = window.location.pathname;
+                        return false;
+                    }
+                }
+            }
+        }
     }
+    
+    // 情况4：没有邀请码且未授权，显示输入框
+    showCodeInput();
+    return false;
+}
     
     // 显示邀请码输入框（加强版：阻止任何绕过可能）
     function showCodeInput(errorMsg) {
@@ -1975,4 +2018,5 @@ window.onload = function() {
 </body>
 
 </html>
+
 
