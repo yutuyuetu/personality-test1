@@ -786,67 +786,40 @@
 </head>
 <body>
 <script>
-// ========== 综合防护系统 v1.0 ==========
+// ========== 综合防护系统 v2.0（加强版）==========
 (function() {
-    // ===== 配置区（你可以随时修改）=====
+    // ===== 配置区 =====
     const CONFIG = {
-        // 调试模式（true=关闭所有限制，方便你测试）
-        DEBUG: false,  // 正式使用改为false
-        
-        // 分享链接有效期（分钟）
+        DEBUG: false,  // 正式使用必须false
         SHARE_EXPIRY: 30,
-        
-        // 是否允许一个邀请码多人同时使用
-        ALLOW_MULTI_DEVICE: false,  // false=一人一码，true=可以多人共用
+        ALLOW_MULTI_DEVICE: false,
     };
     
-    // ===== 邀请码数据库（你可以在这里添加/修改）=====
+    // ===== 邀请码数据库 =====
     const INVITE_CODES = {
-        // 格式：'邀请码': { maxUses: 最大使用次数, expires: '过期时间', note: '备注' }
-        
-        // 你自己的管理码（永久有效，无限次）
         'ADMIN2025': { maxUses: 9999, expires: null, note: '管理员专用' },
         'TESTER': { maxUses: 9999, expires: null, note: '测试员' },
-        
-        // 一次性邀请码（用一次就失效）
         'CITY001': { maxUses: 1, expires: '2026-12-31', note: '给朋友A' },
         'CITY002': { maxUses: 1, expires: '2026-12-31', note: '给朋友B' },
         'CITY003': { maxUses: 1, expires: '2026-12-31', note: '给朋友C' },
-        'CITY004': { maxUses: 1, expires: '2026-12-31', note: '给朋友D' },
-        'CITY005': { maxUses: 1, expires: '2026-12-31', note: '给朋友E' },
-        
-        // 可多次使用的邀请码
         'GROUP01': { maxUses: 5, expires: '2026-06-30', note: '测试群5人' },
-        'GROUP02': { maxUses: 10, expires: '2026-06-30', note: '同事群' },
-        
-        // 限时体验码
-        'TEST2025': { maxUses: 3, expires: '2025-12-31', note: '年度体验码' },
-        'VIP2026': { maxUses: 20, expires: '2026-12-31', note: 'VIP用户群' },
-        
-        // 批量生成的VIP码（可以继续添加）
         'VIP001': { maxUses: 1, expires: '2026-12-31', note: 'VIP用户' },
         'VIP002': { maxUses: 1, expires: '2026-12-31', note: 'VIP用户' },
         'VIP003': { maxUses: 1, expires: '2026-12-31', note: 'VIP用户' },
-        'VIP004': { maxUses: 1, expires: '2026-12-31', note: 'VIP用户' },
-        'VIP005': { maxUses: 1, expires: '2026-12-31', note: 'VIP用户' },
     };
     
-    // ===== 使用记录（存在localStorage，不会丢失）=====
     const USAGE_KEY = 'invite_code_usage';
     
-    // 获取使用记录
     function getUsageRecords() {
         var records = localStorage.getItem(USAGE_KEY);
         return records ? JSON.parse(records) : {};
     }
     
-    // 保存使用记录
     function saveUsageRecord(code, deviceId) {
         var records = getUsageRecords();
         if (!records[code]) {
             records[code] = [];
         }
-        // 记录设备ID和时间
         records[code].push({
             deviceId: deviceId,
             time: new Date().toISOString(),
@@ -855,42 +828,6 @@
         localStorage.setItem(USAGE_KEY, JSON.stringify(records));
     }
     
-    // 检查邀请码是否可用
-    function isCodeValid(code) {
-        // 调试模式直接通过
-        if (CONFIG.DEBUG) return true;
-        
-        var codeInfo = INVITE_CODES[code];
-        if (!codeInfo) return false;
-        
-        // 检查过期
-        if (codeInfo.expires) {
-            var expiryDate = new Date(codeInfo.expires);
-            if (new Date() > expiryDate) return false;
-        }
-        
-        // 检查使用次数
-        var records = getUsageRecords();
-        var usedCount = records[code] ? records[code].length : 0;
-        
-        if (usedCount >= codeInfo.maxUses) return false;
-        
-        // 如果不允许多设备，检查当前设备是否已使用过
-        if (!CONFIG.ALLOW_MULTI_DEVICE) {
-            var deviceId = getDeviceFingerprint();
-            if (records[code]) {
-                var deviceUsed = records[code].some(r => r.deviceId === deviceId);
-                // 如果设备已使用过，允许继续用（同一设备）
-                if (deviceUsed) return true;
-                // 如果设备没用过，但已经达到最大使用次数，不允许
-                if (usedCount >= codeInfo.maxUses) return false;
-            }
-        }
-        
-        return true;
-    }
-    
-    // 生成设备指纹
     function getDeviceFingerprint() {
         var screen = screen.width + 'x' + screen.height;
         var timezone = new Date().getTimezoneOffset();
@@ -898,13 +835,40 @@
         var platform = navigator.platform;
         var raw = screen + '|' + timezone + '|' + lang + '|' + platform;
         
-        // 简单hash
         var hash = 0;
         for (var i = 0; i < raw.length; i++) {
             hash = ((hash << 5) - hash) + raw.charCodeAt(i);
             hash |= 0;
         }
         return Math.abs(hash).toString(16);
+    }
+    
+    function isCodeValid(code) {
+        if (CONFIG.DEBUG) return true;
+        
+        var codeInfo = INVITE_CODES[code];
+        if (!codeInfo) return false;
+        
+        if (codeInfo.expires) {
+            var expiryDate = new Date(codeInfo.expires);
+            if (new Date() > expiryDate) return false;
+        }
+        
+        var records = getUsageRecords();
+        var usedCount = records[code] ? records[code].length : 0;
+        
+        if (usedCount >= codeInfo.maxUses) return false;
+        
+        if (!CONFIG.ALLOW_MULTI_DEVICE) {
+            var deviceId = getDeviceFingerprint();
+            if (records[code]) {
+                var deviceUsed = records[code].some(r => r.deviceId === deviceId);
+                if (deviceUsed) return true;
+                if (usedCount >= codeInfo.maxUses) return false;
+            }
+        }
+        
+        return true;
     }
     
     // ===== 分享链接保护 =====
@@ -917,16 +881,13 @@
         if (share) {
             var now = Date.now();
             
-            // 检查过期
             if (exp && now > parseInt(exp)) {
                 showBlockMessage('分享链接已过期，请向分享者索要新的链接');
                 return false;
             }
             
-            // 检查设备指纹（防止二次分享）
             var currentFp = getDeviceFingerprint();
             if (fp && fp !== currentFp) {
-                // 检查是否是首次访问
                 var firstVisit = sessionStorage.getItem('first_visit');
                 if (firstVisit === 'true') {
                     showBlockMessage('此链接仅限个人使用，无法二次分享');
@@ -939,24 +900,33 @@
         return true;
     }
     
-    // ===== 邀请码验证 =====
+    // ===== 核心验证逻辑（修复版）=====
     function checkInviteCode() {
         var params = new URLSearchParams(window.location.search);
         var code = params.get('code');
         
-        // 已经授权过的直接通过
-        if (sessionStorage.getItem('authorized')) {
+        // 调试模式直接通过
+        if (CONFIG.DEBUG) {
+            console.log('调试模式：跳过验证');
             return true;
         }
         
-        // 有邀请码参数
+        // 【修复】检查是否已授权
+        var isAuthorized = sessionStorage.getItem('authorized') === 'true';
+        var usedCode = sessionStorage.getItem('used_code');
+        
+        // 情况1：已经授权过，直接通过
+        if (isAuthorized && usedCode) {
+            return true;
+        }
+        
+        // 情况2：有邀请码参数
         if (code) {
             if (isCodeValid(code)) {
-                // 记录使用
                 var deviceId = getDeviceFingerprint();
                 saveUsageRecord(code, deviceId);
                 
-                // 授权
+                // 存储授权信息
                 sessionStorage.setItem('authorized', 'true');
                 sessionStorage.setItem('used_code', code);
                 
@@ -969,22 +939,32 @@
             }
         }
         
-        // 没有邀请码，显示输入框
+        // 情况3：没有邀请码且未授权，显示输入框
         showCodeInput();
         return false;
     }
     
-    // 显示邀请码输入框
+    // 显示邀请码输入框（加强版：阻止任何绕过可能）
     function showCodeInput(errorMsg) {
-        document.body.innerHTML = `
+        // 先清除所有可能的内容
+        document.body.innerHTML = '';
+        
+        // 创建全新的输入界面
+        var container = document.createElement('div');
+        container.innerHTML = `
             <div style="
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                min-height: 100vh;
                 background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
                 font-family: 'PingFang SC', sans-serif;
                 padding: 20px;
+                z-index: 999999;
             ">
                 <div style="
                     background: white;
@@ -1029,6 +1009,7 @@
                 </div>
             </div>
         `;
+        document.body.appendChild(container);
         
         // 绑定提交函数
         window.submitCode = function() {
@@ -1041,17 +1022,21 @@
         };
     }
     
-    // 显示阻止信息
     function showBlockMessage(message) {
         document.body.innerHTML = `
             <div style="
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                min-height: 100vh;
                 background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
                 font-family: 'PingFang SC', sans-serif;
                 padding: 20px;
+                z-index: 999999;
             ">
                 <div style="
                     background: white;
@@ -1077,14 +1062,12 @@
         `;
     }
     
-    // ===== 生成分享链接的工具（给你用）=====
     window.getShareLink = function() {
         var fp = getDeviceFingerprint();
         var expiry = Date.now() + CONFIG.SHARE_EXPIRY * 60 * 1000;
         var baseUrl = window.location.href.split('?')[0];
         var shareUrl = baseUrl + '?share=1&fp=' + fp + '&exp=' + expiry;
         
-        // 复制到剪贴板
         navigator.clipboard.writeText(shareUrl).then(function() {
             alert('分享链接已复制到剪贴板，有效期' + CONFIG.SHARE_EXPIRY + '分钟');
         }).catch(function() {
@@ -1094,9 +1077,7 @@
         return shareUrl;
     };
     
-    // ===== 管理工具（按F12在控制台使用）=====
     window.CodeManager = {
-        // 查看所有邀请码状态
         list: function() {
             var records = getUsageRecords();
             var result = {};
@@ -1108,74 +1089,46 @@
                     maxUses: info.maxUses,
                     used: used,
                     remaining: info.maxUses - used,
-                    expires: info.expires || '永久',
-                    users: records[code] || []
+                    expires: info.expires || '永久'
                 };
             }
-            console.table(result, ['note', 'maxUses', 'used', 'remaining', 'expires']);
+            console.table(result);
             return result;
         },
-        
-        // 批量生成邀请码
-        batchGenerate: function(prefix, count, maxUses, expires) {
-            var codes = {};
-            for (var i = 1; i <= count; i++) {
-                var num = i.toString().padStart(3, '0');
-                var code = prefix + num;
-                codes[code] = {
-                    maxUses: maxUses || 1,
-                    expires: expires || '2026-12-31',
-                    note: '批量生成 ' + code
-                };
-            }
-            console.log('批量生成的邀请码：');
-            console.log(JSON.stringify(codes, null, 2));
-            console.log('复制上面的代码替换 INVITE_CODES 对象');
-            return codes;
-        },
-        
-        // 重置某个邀请码的使用记录
         resetCode: function(code) {
             var records = getUsageRecords();
             delete records[code];
             localStorage.setItem(USAGE_KEY, JSON.stringify(records));
             console.log('已重置', code);
-        },
-        
-        // 查看详细使用记录
-        details: function(code) {
-            var records = getUsageRecords();
-            if (code) {
-                console.log(code + '的使用记录：', records[code] || []);
-            } else {
-                console.log('所有使用记录：', records);
-            }
         }
     };
     
     // ===== 执行验证 =====
     try {
-        // 调试模式跳过所有验证
         if (CONFIG.DEBUG) {
             console.log('调试模式：所有验证已关闭');
             return;
         }
         
-        // 1. 首先检查分享链接
+        // 1. 检查分享链接
         if (!checkShareLink()) {
             throw new Error('Share link check failed');
         }
         
-        // 2. 检查邀请码
+        // 2. 检查邀请码（这是核心）
         if (!checkInviteCode()) {
             throw new Error('Invite code check failed');
         }
         
-    } catch(e) {
-        // 已经显示了错误页面，什么都不做
-        if (e.message !== 'Showing code input') {
-            console.log('验证失败:', e);
+        // 3. 【新增】双重保险：再次确认sessionStorage中有授权
+        if (!sessionStorage.getItem('authorized')) {
+            showCodeInput('请先输入邀请码');
+            throw new Error('Not authorized');
         }
+        
+    } catch(e) {
+        // 已经显示了错误页面
+        console.log('验证拦截:', e.message);
     }
 })();
 </script>
@@ -2026,4 +1979,5 @@ window.onload = function() {
 };
 </script>
 </body>
+
 </html>
