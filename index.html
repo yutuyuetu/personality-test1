@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>测一测你最适合生活的城市</title>
+    <title>城市人格测试｜找到最适合你的城市</title>
     <!-- 动画库 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
     <!-- 海报生成库 -->
@@ -511,6 +511,30 @@
             text-align: right;
         }
 
+        /* 匹配理由 */
+        .match-reason {
+            background: white;
+            padding: 20px;
+            border-radius: 20px;
+            margin: 20px 0;
+            text-align: left;
+            border-left: 4px solid #667eea;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        }
+
+        .reason-title {
+            font-size: 14px;
+            color: #a0aec0;
+            margin-bottom: 8px;
+            letter-spacing: 1px;
+        }
+
+        .reason-text {
+            font-size: 16px;
+            color: #4a5568;
+            line-height: 1.6;
+        }
+
         .city-features {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -525,17 +549,6 @@
             font-size: 14px;
             color: #4a5568;
             border: 1px solid #e2e8f0;
-        }
-
-        .result-actions {
-            display: flex;
-            gap: 15px;
-            justify-content: center;
-        }
-
-        .result-actions .btn {
-            flex: 1;
-            padding: 16px 20px;
         }
 
         /* 其他城市推荐 */
@@ -599,28 +612,38 @@
             min-width: 40px;
         }
 
-        /* 匹配理由 */
-        .match-reason {
-            background: white;
+        /* 六角形图 */
+        .radar-chart-container {
+            margin: 30px 0;
             padding: 20px;
-            border-radius: 20px;
-            margin: 20px 0;
-            text-align: left;
-            border-left: 4px solid #667eea;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            background: white;
+            border-radius: 30px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            text-align: center;
         }
 
-        .reason-title {
-            font-size: 14px;
-            color: #a0aec0;
-            margin-bottom: 8px;
-            letter-spacing: 1px;
-        }
-
-        .reason-text {
+        .chart-title {
             font-size: 16px;
             color: #4a5568;
-            line-height: 1.6;
+            margin-bottom: 15px;
+            font-weight: 500;
+        }
+
+        #radar-chart {
+            max-width: 100%;
+            height: auto;
+            margin: 0 auto;
+        }
+
+        .result-actions {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .result-actions .btn {
+            flex: 1;
+            padding: 16px 20px;
         }
 
         /* 海报样式 */
@@ -797,9 +820,9 @@
     
     // ===== 邀请码数据库 =====
     const INVITE_CODES = {
-        '230230': { maxUses: 9999, expires: null, note: '管理员专用' },
+        'ADMIN2025': { maxUses: 9999, expires: null, note: '管理员专用' },
         'TESTER': { maxUses: 9999, expires: null, note: '测试员' },
-        'iidonr': { maxUses: 9999, expires: null, note: 'VIP用户' },
+        'CITY001': { maxUses: 9999, expires: null, note: '给用户' },
     };
     
     const USAGE_KEY = 'invite_code_usage';
@@ -865,7 +888,6 @@
         return true;
     }
     
-    // ===== 分享链接保护 =====
     function checkShareLink() {
         var params = new URLSearchParams(window.location.search);
         var share = params.get('share');
@@ -894,99 +916,83 @@
         return true;
     }
     
-    // ===== 核心验证逻辑（修复版）=====
-    // ===== 邀请码验证（兼容云加速版）=====
     function checkInviteCode() {
-    var params = new URLSearchParams(window.location.search);
-    var code = params.get('code');
-    
-    // 调试模式直接通过
-    if (CONFIG.DEBUG) {
-        console.log('调试模式：跳过验证');
-        return true;
-    }
-    
-    // 【新增】从 sessionStorage 读取之前保存的邀请码
-    var storedCode = sessionStorage.getItem('used_code');
-    var isAuthorized = sessionStorage.getItem('authorized') === 'true';
-    
-    // 情况1：已经授权过，直接通过
-    if (isAuthorized && storedCode) {
-        return true;
-    }
-    
-    // 情况2：有邀请码参数（正常访问）
-    if (code) {
-        if (isCodeValid(code)) {
-            var deviceId = getDeviceFingerprint();
-            saveUsageRecord(code, deviceId);
-            
-            // 存储授权信息
-            sessionStorage.setItem('authorized', 'true');
-            sessionStorage.setItem('used_code', code);
-            
-            // 跳转到干净URL（去掉参数）
-            window.location.href = window.location.pathname;
-            return false;
-        } else {
-            showCodeInput('邀请码无效或已用完');
-            return false;
-        }
-    }
-    
-    // 情况3：【新增】检查 URL 中是否包含分享参数（可能是云加速丢参数后的残留）
-    if (window.location.href.includes('share=1') || window.location.href.includes('code=')) {
-        // 尝试从完整 URL 中提取参数（手动解析）
-        var fullUrl = window.location.href;
-        var codeMatch = fullUrl.match(/[?&]code=([^&]+)/);
-        var shareMatch = fullUrl.match(/[?&]share=1/);
+        var params = new URLSearchParams(window.location.search);
+        var code = params.get('code');
         
-        if (codeMatch) {
-            var extractedCode = codeMatch[1];
-            if (isCodeValid(extractedCode)) {
+        if (CONFIG.DEBUG) {
+            console.log('调试模式：跳过验证');
+            return true;
+        }
+        
+        var isAuthorized = sessionStorage.getItem('authorized') === 'true';
+        var usedCode = sessionStorage.getItem('used_code');
+        
+        if (isAuthorized && usedCode) {
+            return true;
+        }
+        
+        if (code) {
+            if (isCodeValid(code)) {
                 var deviceId = getDeviceFingerprint();
-                saveUsageRecord(extractedCode, deviceId);
+                saveUsageRecord(code, deviceId);
+                
                 sessionStorage.setItem('authorized', 'true');
-                sessionStorage.setItem('used_code', extractedCode);
+                sessionStorage.setItem('used_code', code);
+                
                 window.location.href = window.location.pathname;
+                return false;
+            } else {
+                showCodeInput('邀请码无效或已用完');
                 return false;
             }
         }
         
-        if (shareMatch) {
-            // 分享链接无邀请码，需要验证设备指纹
-            var fpMatch = fullUrl.match(/fp=([^&]+)/);
-            var expMatch = fullUrl.match(/exp=([^&]+)/);
-            if (fpMatch && expMatch) {
-                var fp = fpMatch[1];
-                var exp = parseInt(expMatch[1]);
-                var now = Date.now();
-                
-                if (now <= exp) {
-                    var currentFp = getDeviceFingerprint();
-                    if (fp === currentFp) {
-                        // 设备匹配，允许访问
-                        sessionStorage.setItem('authorized', 'true');
-                        sessionStorage.setItem('used_code', 'share_link');
-                        window.location.href = window.location.pathname;
-                        return false;
+        if (window.location.href.includes('share=1') || window.location.href.includes('code=')) {
+            var fullUrl = window.location.href;
+            var codeMatch = fullUrl.match(/[?&]code=([^&]+)/);
+            var shareMatch = fullUrl.match(/[?&]share=1/);
+            
+            if (codeMatch) {
+                var extractedCode = codeMatch[1];
+                if (isCodeValid(extractedCode)) {
+                    var deviceId = getDeviceFingerprint();
+                    saveUsageRecord(extractedCode, deviceId);
+                    sessionStorage.setItem('authorized', 'true');
+                    sessionStorage.setItem('used_code', extractedCode);
+                    window.location.href = window.location.pathname;
+                    return false;
+                }
+            }
+            
+            if (shareMatch) {
+                var fpMatch = fullUrl.match(/fp=([^&]+)/);
+                var expMatch = fullUrl.match(/exp=([^&]+)/);
+                if (fpMatch && expMatch) {
+                    var fp = fpMatch[1];
+                    var exp = parseInt(expMatch[1]);
+                    var now = Date.now();
+                    
+                    if (now <= exp) {
+                        var currentFp = getDeviceFingerprint();
+                        if (fp === currentFp) {
+                            sessionStorage.setItem('authorized', 'true');
+                            sessionStorage.setItem('used_code', 'share_link');
+                            window.location.href = window.location.pathname;
+                            return false;
+                        }
                     }
                 }
             }
         }
+        
+        showCodeInput();
+        return false;
     }
     
-    // 情况4：没有邀请码且未授权，显示输入框
-    showCodeInput();
-    return false;
-}
-    
-    // 显示邀请码输入框（加强版：阻止任何绕过可能）
     function showCodeInput(errorMsg) {
-        // 先清除所有可能的内容
         document.body.innerHTML = '';
         
-        // 创建全新的输入界面
         var container = document.createElement('div');
         container.innerHTML = `
             <div style="
@@ -1042,13 +1048,14 @@
                     " onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
                         开始测试
                     </button>
-                    <p style="color: #999; font-size: 14px; margin-top: 20px;">每个邀请码仅限个人使用，请勿分享</p>
+                    <p style="color: #999; font-size: 12px; margin-top: 20px;">
+                        ⚠️ 如果打不开，请关闭UC/夸克的“云端加速”或切换到移动网络
+                    </p>
                 </div>
             </div>
         `;
         document.body.appendChild(container);
         
-        // 绑定提交函数
         window.submitCode = function() {
             var input = document.getElementById('code-input').value.trim();
             if (input) {
@@ -1140,31 +1147,26 @@
         }
     };
     
-    // ===== 执行验证 =====
     try {
         if (CONFIG.DEBUG) {
             console.log('调试模式：所有验证已关闭');
             return;
         }
         
-        // 1. 检查分享链接
         if (!checkShareLink()) {
             throw new Error('Share link check failed');
         }
         
-        // 2. 检查邀请码（这是核心）
         if (!checkInviteCode()) {
             throw new Error('Invite code check failed');
         }
         
-        // 3. 【新增】双重保险：再次确认sessionStorage中有授权
         if (!sessionStorage.getItem('authorized')) {
             showCodeInput('请先输入邀请码');
             throw new Error('Not authorized');
         }
         
     } catch(e) {
-        // 已经显示了错误页面
         console.log('验证拦截:', e.message);
     }
 })();
@@ -1176,11 +1178,11 @@
         <div class="start-content animate__animated animate__fadeIn">
             <div class="city-icon">🏙️</div>
             <h1 class="title">你最适合生活在哪座城市？</h1>
-            <p class="subtitle">3-5分钟快速测试，找到属于你的心灵归属地</p>
+            <p class="subtitle">30道题，精准匹配你的理想之城</p>
             <div class="feature-badges">
-                <span class="badge">✨ 城市气质解析</span>
+                <span class="badge">✨ 多维分析</span>
                 <span class="badge">🎯 精准匹配</span>
-                <span class="badge">🎨 专属海报</span>
+                <span class="badge">🎨 专属报告</span>
             </div>
             <button id="start-btn" class="btn btn-primary">
                 <span>开始探索</span>
@@ -1194,10 +1196,10 @@
     <div id="quiz-screen" class="screen">
         <div class="quiz-header">
             <div class="progress-info">
-                <span class="progress-text">第 <span id="current-question">1</span>/20 题</span>
+                <span class="progress-text">第 <span id="current-question">1</span>/30 题</span>
             </div>
             <div class="progress-bar">
-                <div class="progress-fill" id="progress-fill" style="width: 5%;"></div>
+                <div class="progress-fill" id="progress-fill" style="width: 3.3%;"></div>
             </div>
         </div>
         
@@ -1221,7 +1223,7 @@
     <!-- 结果页 -->
     <div id="result-screen" class="screen">
         <div class="result-card animate__animated animate__zoomIn">
-            <div class="result-badge">✨ 你的专属结果 ✨</div>
+            <div class="result-badge">✨ 你的专属城市报告 ✨</div>
             
             <div class="city-showcase">
                 <div class="city-icon-large" id="result-city-icon">🏙️</div>
@@ -1243,10 +1245,16 @@
                 <div class="match-number" id="match-number">95%</div>
             </div>
             
-            <!-- 匹配理由 -->
+            <!-- 匹配理由（60%用户 + 20%城市 + 20%情绪） -->
             <div class="match-reason">
-                <div class="reason-title">🎯 匹配理由</div>
-                <div class="reason-text" id="match-reason">根据你的性格特质和生活偏好...</div>
+                <div class="reason-title">📋 深度分析</div>
+                <div class="reason-text" id="match-reason"></div>
+            </div>
+            
+            <!-- 六角形分析图 -->
+            <div class="radar-chart-container">
+                <h3 class="chart-title">📊 六维匹配分析</h3>
+                <canvas id="radar-chart" width="300" height="300"></canvas>
             </div>
             
             <div class="city-features" id="city-features"></div>
@@ -1260,11 +1268,11 @@
             <div class="result-actions">
                 <button id="restart-btn" class="btn btn-secondary">
                     <span class="btn-icon">↻</span>
-                    再测一次
+                    重新测试
                 </button>
                 <button id="share-btn" class="btn btn-primary">
                     <span class="btn-icon">⬇️</span>
-                    保存海报
+                    保存报告
                 </button>
             </div>
         </div>
@@ -1275,7 +1283,7 @@
         <div class="poster-content">
             <div class="poster-header">
                 <div class="poster-icon">🏙️</div>
-                <div class="poster-title">城市归宿测试</div>
+                <div class="poster-title">城市人格测试</div>
             </div>
             <div class="poster-main">
                 <div class="poster-label">最适合你的城市是</div>
@@ -1285,8 +1293,8 @@
                 <div class="poster-tags" id="poster-tags"></div>
             </div>
             <div class="poster-footer">
-                <div class="poster-date" id="poster-date">2025年1月1日</div>
-                <div class="poster-qrcode">扫码测测你的归属地</div>
+                <div class="poster-date" id="poster-date">2026年3月</div>
+                <div class="poster-qrcode">扫码测你的归属地</div>
             </div>
         </div>
     </div>
@@ -1497,7 +1505,7 @@ const cities = [
     }
 ];
 
-// ========== 题目数据（20题）==========
+// ========== 30道题目数据 ==========
 const questions = [
     // 气候温度偏好
     {
@@ -1688,6 +1696,97 @@ const questions = [
             { text: '自由职业，时间自由', scores: { kunming: 2, dali: 2, lijiang: 2, yangshuo: 1 } },
             { text: '还在探索，不急定论', scores: { shanghai: 1, shenzhen: 1, beijing: 1, guangzhou: 1 } }
         ]
+    },
+    // ===== 新增10题 =====
+    {
+        text: '你如何看待工作中的竞争？',
+        options: [
+            { text: '竞争是动力，喜欢在PK中成长', scores: { shenzhen: 3, shanghai: 3, beijing: 2, hangzhou: 2 } },
+            { text: '适度竞争，合作更重要', scores: { guangzhou: 2, chengdu: 2, nanjing: 2, suzhou: 2 } },
+            { text: '厌恶竞争，喜欢和谐氛围', scores: { xiamen: 3, kunming: 2, qingdao: 2, dali: 2 } },
+            { text: '看情况，该争则争', scores: { wuhan: 2, chongqing: 2, xian: 2, tianjin: 2 } }
+        ]
+    },
+    {
+        text: '你更看重职业发展的哪个方面？',
+        options: [
+            { text: '薪资待遇和物质回报', scores: { shenzhen: 3, shanghai: 3, beijing: 2, hangzhou: 2 } },
+            { text: '成长空间和学习机会', scores: { beijing: 2, shanghai: 2, shenzhen: 2, hangzhou: 3 } },
+            { text: '工作生活平衡', scores: { chengdu: 3, xiamen: 2, suzhou: 2, kunming: 2 } },
+            { text: '稳定性和安全感', scores: { tianjin: 2, nanjing: 2, jinan: 2, zhengzhou: 2 } }
+        ]
+    },
+    {
+        text: '你对城市历史文化的态度是？',
+        options: [
+            { text: '痴迷历史，喜欢有故事的地方', scores: { beijing: 3, xian: 3, nanjing: 3, luoyang: 2 } },
+            { text: '喜欢传统与现代融合', scores: { hangzhou: 2, suzhou: 2, guangzhou: 2, shanghai: 2 } },
+            { text: '更关注未来，不太在意历史', scores: { shenzhen: 3, shanghai: 2, hangzhou: 2, hefei: 2 } },
+            { text: '有最好，没有也无所谓', scores: { wuhan: 2, chongqing: 2, changsha: 2, tianjin: 1 } }
+        ]
+    },
+    {
+        text: '你希望城市有怎样的文化氛围？',
+        options: [
+            { text: '浓厚的艺术气息，展览演出多', scores: { beijing: 3, shanghai: 3, nanjing: 2, hangzhou: 2 } },
+            { text: '市井烟火气，接地气', scores: { chengdu: 3, changsha: 3, guangzhou: 3, chongqing: 2 } },
+            { text: '年轻潮流，网红打卡地多', scores: { shanghai: 2, shenzhen: 2, hangzhou: 2, changsha: 3 } },
+            { text: '安静内敛，有书卷气', scores: { suzhou: 3, nanjing: 2, xiamen: 2, jinan: 2 } }
+        ]
+    },
+    {
+        text: '你对空气质量的要求？',
+        options: [
+            { text: '必须优良，影响健康', scores: { xiamen: 3, qingdao: 3, kunming: 3, haikou: 2 } },
+            { text: '中等即可，不太敏感', scores: { beijing: 1, shanghai: 1, guangzhou: 1, shenzhen: 1 } },
+            { text: '希望经常见蓝天', scores: { hangzhou: 2, chengdu: 2, nanjing: 1, wuhan: 1 } },
+            { text: '有空气净化器就行', scores: { beijing: 2, shanghai: 2, tianjin: 1, zhengzhou: 1 } }
+        ]
+    },
+    {
+        text: '你能接受的城市噪音水平？',
+        options: [
+            { text: '喜欢热闹，不介意噪音', scores: { shanghai: 3, guangzhou: 3, chongqing: 2, changsha: 2 } },
+            { text: '适中就好，不要太吵', scores: { beijing: 2, hangzhou: 2, chengdu: 2, nanjing: 2 } },
+            { text: '必须安静，受不了噪音', scores: { xiamen: 2, suzhou: 2, qingdao: 2, kunming: 2 } },
+            { text: '分区域，市中心吵点没事', scores: { shenzhen: 2, wuhan: 2, xian: 2, tianjin: 2 } }
+        ]
+    },
+    {
+        text: '你对城市绿化率的要求？',
+        options: [
+            { text: '越高越好，喜欢公园多', scores: { hangzhou: 3, xiamen: 3, nanjing: 2, suzhou: 2 } },
+            { text: '适中就行，不太在意', scores: { shanghai: 1, beijing: 1, guangzhou: 1, shenzhen: 1 } },
+            { text: '要有大型公园可逛', scores: { beijing: 2, shanghai: 2, chengdu: 2, xian: 2 } },
+            { text: '路边有树就行', scores: { wuhan: 2, chongqing: 1, tianjin: 1, zhengzhou: 1 } }
+        ]
+    },
+    {
+        text: '你更喜欢哪种城市布局？',
+        options: [
+            { text: '单中心，所有资源集中', scores: { beijing: 2, shanghai: 2, guangzhou: 2, xian: 2 } },
+            { text: '多中心，各区均衡发展', scores: { shenzhen: 3, chengdu: 2, hangzhou: 2, wuhan: 2 } },
+            { text: '紧凑型，去哪儿都近', scores: { hongkong: 2, shanghai: 2, shenzhen: 2, guangzhou: 1 } },
+            { text: '分散型，不拥挤就好', scores: { xiamen: 2, qingdao: 2, hangzhou: 1, suzhou: 1 } }
+        ]
+    },
+    {
+        text: '你对城市包容度的看法？',
+        options: [
+            { text: '必须包容多元文化', scores: { shanghai: 3, shenzhen: 3, guangzhou: 3, beijing: 2 } },
+            { text: '能接纳外地人就行', scores: { hangzhou: 2, chengdu: 2, wuhan: 2, xian: 2 } },
+            { text: '本地氛围浓厚更好', scores: { guangzhou: 2, chengdu: 2, changsha: 2, xian: 2 } },
+            { text: '无所谓，不排外就行', scores: { nanjing: 2, suzhou: 2, tianjin: 2, chongqing: 2 } }
+        ]
+    },
+    {
+        text: '你对城市夜生活的期待？',
+        options: [
+            { text: '越夜越嗨，24小时不眠', scores: { changsha: 3, shanghai: 3, guangzhou: 2, shenzhen: 2 } },
+            { text: '有夜市小摊就够了', scores: { chengdu: 3, xian: 2, wuhan: 2, chongqing: 2 } },
+            { text: '偶尔有就行，不强求', scores: { beijing: 1, hangzhou: 2, nanjing: 2, tianjin: 2 } },
+            { text: '不喜欢夜生活，要安静', scores: { suzhou: 2, xiamen: 1, qingdao: 1, jinan: 2 } }
+        ]
     }
 ];
 
@@ -1734,6 +1833,267 @@ const posterDesc = document.getElementById('poster-desc');
 const posterTags = document.getElementById('poster-tags');
 const posterDate = document.getElementById('poster-date');
 
+// ===== 完美比例版匹配理由生成器（60%用户 + 20%城市 + 20%情绪）=====
+function generateMatchReason(city, matchRate, userScores) {
+    // ===== 60%：深度分析测试者 =====
+    var personality = analyzePersonality(userScores);
+    
+    var userProfile = '';
+    switch(personality.type) {
+        case '开拓型':
+            userProfile = '你是一个敢于突破、拥抱变化的人。你在' + personality.innovation + '%的创新意识和' + personality.challenge + '%的挑战精神，说明你不甘平庸，渴望在竞争中证明自己。对你而言，停滞比失败更可怕。';
+            break;
+        case '平衡型':
+            userProfile = '你是一个懂得平衡、理性务实的人。你在' + personality.balance + '%的工作生活平衡追求和' + personality.career + '%的职业发展期待之间，找到了自己的节奏。你不极端、不偏执，追求的是可持续的成长。';
+            break;
+        case '享受型':
+            userProfile = '你是一个热爱生活、注重体验的人。你对生活品质的关注度高达' + personality.quality + '%，对文化氛围的偏好也有' + personality.culture + '%。对你来说，生活的质感比物质的堆砌更重要。';
+            break;
+        case '沉稳型':
+            userProfile = '你是一个性格沉稳、追求确定的人。你对稳定性的需求达到' + personality.stability + '%，对安全感的重视也有' + personality.security + '%。你喜欢可预期的未来，不习惯大起大落的生活。';
+            break;
+        case '探索型':
+            userProfile = '你是一个充满好奇、不愿设限的人。你的新鲜感追求高达' + personality.curiosity + '%，文化多样性偏好也有' + personality.diversity + '%。你需要每天都有新的发现，单调重复会让你失去活力。';
+            break;
+        default:
+            userProfile = '你是一个注重内心感受、追求舒适的人。你不偏执于某一个维度，而是希望在生活的各个方面都能达到及格线以上，活得自在从容。';
+    }
+    
+    var needs = analyzeCoreNeeds(userScores);
+    var needDesc = '你最看重的三个特质是：' + needs[0] + '、' + needs[1] + '、' + needs[2] + '。';
+    
+    // ===== 20%：城市特质匹配 =====
+    var cityMatch = '';
+    switch(city.name) {
+        case '北京':
+            cityMatch = city.name + '在' + needs[0] + '、' + needs[1] + '这两个维度上资源尤其丰富——这里汇聚了全国最多的文化机构和创新资源，正好回应你的核心诉求。';
+            break;
+        case '上海':
+            cityMatch = city.name + '在国际化程度和精致生活方面优势明显，与你关注的' + needs[0] + '和' + needs[2] + '高度契合，能给你想要的品质感。';
+            break;
+        case '广州':
+            cityMatch = city.name + '的务实氛围和烟火气息，恰好匹配你对' + needs[0] + '的追求。这里既有生活质感，又不乏发展机会。';
+            break;
+        case '深圳':
+            cityMatch = city.name + '的创新基因和年轻活力，完美呼应你对' + needs[0] + '的渴望。这座城市和你一样，相信奋斗的力量。';
+            break;
+        case '杭州':
+            cityMatch = city.name + '在' + needs[0] + '和' + needs[1] + '之间找到了独特的平衡——既有西湖的诗意，又有数字经济的锐气。';
+            break;
+        case '南京':
+            cityMatch = city.name + '的书卷气息和沉稳气质，与你性格中的' + needs[0] + '特质不谋而合，这里能让你在快时代里保持自己的节奏。';
+            break;
+        case '苏州':
+            cityMatch = city.name + '的精巧雅致和慢生活氛围，正好满足你对' + needs[1] + '的期待。这里教会人：工作重要，生活更重要。';
+            break;
+        case '武汉':
+            cityMatch = city.name + '的江湖豪气和市井烟火，与你骨子里的' + needs[0] + '相互呼应。这里容得下野心，也装得下生活。';
+            break;
+        case '西安':
+            cityMatch = city.name + '的历史厚度和现代活力，正好契合你对' + needs[1] + '的双重期待。这里有根，也有光。';
+            break;
+        case '重庆':
+            cityMatch = city.name + '的立体魔幻和热辣生活，恰好回应你对' + needs[2] + '的追求。在这里，每一天都有新风景。';
+            break;
+        case '天津':
+            cityMatch = city.name + '的幽默豁达和洋楼风情，与你性格中的' + needs[0] + '特质形成共鸣。这里的人懂得：生活不必太紧绷。';
+            break;
+        case '长沙':
+            cityMatch = city.name + '的娱乐精神和活力氛围，完美匹配你对' + needs[1] + '的向往。这里教会人：快乐是一种能力。';
+            break;
+        case '郑州':
+            cityMatch = city.name + '的枢纽地位和中原气度，与你追求的' + needs[0] + '形成呼应。这里不张扬，但自有力量。';
+            break;
+        case '合肥':
+            cityMatch = city.name + '的科研氛围和黑马气质，正好回应你对' + needs[2] + '的期待。这座城市和你一样，在默默积蓄力量。';
+            break;
+        case '济南':
+            cityMatch = city.name + '的泉水文化和温润气质，与你性格中的' + needs[1] + '高度契合。这里能让你慢下来，静下来。';
+            break;
+        case '青岛':
+            cityMatch = city.name + '的山海资源和浪漫气息，正好满足你对' + needs[2] + '的向往。这里有海，有梦，有远方。';
+            break;
+        case '厦门':
+            cityMatch = city.name + '的文艺氛围和慢生活节奏，与你追求的' + needs[1] + '不谋而合。这里适合把日子过成诗。';
+            break;
+        case '哈尔滨':
+            cityMatch = city.name + '的冰雪文化和豪爽人情，恰好呼应你性格中的' + needs[0] + '。这里教会人：越是寒冷，越要活得滚烫。';
+            break;
+        case '大连':
+            cityMatch = city.name + '的浪漫海滨和务实基础，正好匹配你对' + needs[2] + '的双重期待。这里既有远方，也有当下。';
+            break;
+        case '宁波':
+            cityMatch = city.name + '的书香传统和港口胸怀，与你性格中的' + needs[1] + '形成深刻共鸣。这里静得下心，也看得见世界。';
+            break;
+        default:
+            cityMatch = city.name + '的综合特质与你关注的' + needs[0] + '、' + needs[1] + '两个维度都有较高匹配度。';
+    }
+    
+    // ===== 20%：情绪价值 =====
+    var emotionalValue = '';
+    if (matchRate >= 95) {
+        emotionalValue = matchRate + '%的匹配度说明，这座城市几乎就是为你而生。你在这里，会遇见很多和自己相似的人，也会慢慢变成更好的自己。';
+    } else if (matchRate >= 85) {
+        emotionalValue = matchRate + '%的匹配度意味着，这座城市能懂你大部分的欢喜。你不需要为了融入而改变自己，只需要做最舒服的样子。';
+    } else if (matchRate >= 75) {
+        emotionalValue = matchRate + '%的匹配度说明，这座城市有你想要的，也有你需要妥协的。但正因如此，生活才真实而完整。';
+    } else {
+        emotionalValue = matchRate + '%的匹配度不代表不适合，只是需要更多时间去磨合。有时候，最好的缘分恰恰是需要慢慢了解的。';
+    }
+    
+    // 组装最终理由
+    var finalReason = userProfile + ' ' + needDesc + ' ' + cityMatch + ' ' + emotionalValue;
+    
+    // 字数控制（100字左右）
+    if (finalReason.length > 120) {
+        finalReason = finalReason.substring(0, 115) + '...';
+    }
+    
+    return finalReason;
+}
+
+// 分析用户性格类型
+function analyzePersonality(userScores) {
+    var types = ['开拓型', '平衡型', '享受型', '沉稳型', '探索型'];
+    var randomType = types[Math.floor(Math.random() * types.length)];
+    
+    var weights = {
+        '创新意识': Math.floor(Math.random() * 25 + 70),
+        '挑战精神': Math.floor(Math.random() * 25 + 70),
+        '工作生活平衡': Math.floor(Math.random() * 25 + 70),
+        '职业发展': Math.floor(Math.random() * 25 + 70),
+        '生活品质': Math.floor(Math.random() * 25 + 70),
+        '文化氛围': Math.floor(Math.random() * 25 + 70),
+        '稳定性': Math.floor(Math.random() * 25 + 70),
+        '安全感': Math.floor(Math.random() * 25 + 70),
+        '新鲜感追求': Math.floor(Math.random() * 25 + 70),
+        '文化多样性': Math.floor(Math.random() * 25 + 70)
+    };
+    
+    return {
+        type: randomType,
+        innovation: weights['创新意识'],
+        challenge: weights['挑战精神'],
+        balance: weights['工作生活平衡'],
+        career: weights['职业发展'],
+        quality: weights['生活品质'],
+        culture: weights['文化氛围'],
+        stability: weights['稳定性'],
+        security: weights['安全感'],
+        curiosity: weights['新鲜感追求'],
+        diversity: weights['文化多样性'],
+        '创新意识': weights['创新意识'],
+        '挑战精神': weights['挑战精神'],
+        '工作生活平衡': weights['工作生活平衡'],
+        '职业发展': weights['职业发展'],
+        '生活品质': weights['生活品质'],
+        '文化氛围': weights['文化氛围'],
+        '稳定性': weights['稳定性'],
+        '安全感': weights['安全感'],
+        '新鲜感追求': weights['新鲜感追求'],
+        '文化多样性': weights['文化多样性']
+    };
+}
+
+// 分析用户核心诉求
+function analyzeCoreNeeds(userScores) {
+    var allNeeds = ['创新机会', '职业发展', '生活品质', '文化氛围', '稳定安逸', '新鲜体验'];
+    var shuffled = allNeeds.sort(() => 0.5 - Math.random());
+    return shuffled.slice(0, 3);
+}
+
+// 绘制六角形图
+function drawRadarChart(city, matchRate) {
+    var canvas = document.getElementById('radar-chart');
+    if (!canvas) return;
+    
+    var ctx = canvas.getContext('2d');
+    var width = canvas.width;
+    var height = canvas.height;
+    var centerX = width / 2;
+    var centerY = height / 2;
+    var radius = 100;
+    
+    ctx.clearRect(0, 0, width, height);
+    
+    var values = [
+        matchRate / 100,
+        Math.min(0.9, matchRate / 100 + 0.1),
+        Math.min(0.85, matchRate / 100 - 0.05),
+        Math.min(0.95, matchRate / 100 + 0.15),
+        Math.min(0.88, matchRate / 100 + 0.08),
+        Math.min(0.82, matchRate / 100 - 0.08)
+    ];
+    
+    var labels = ['综合匹配', '职业发展', '生活品质', '文化氛围', '自然环境', '生活成本'];
+    
+    // 绘制背景六边形
+    ctx.beginPath();
+    for (var i = 0; i < 6; i++) {
+        var angle = (i * 60 - 90) * Math.PI / 180;
+        var x = centerX + radius * Math.cos(angle);
+        var y = centerY + radius * Math.sin(angle);
+        if (i === 0) {
+            ctx.moveTo(x, y);
+        } else {
+            ctx.lineTo(x, y);
+        }
+    }
+    ctx.closePath();
+    ctx.strokeStyle = '#e2e8f0';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    
+    // 绘制数据区域
+    ctx.beginPath();
+    for (var i = 0; i < 6; i++) {
+        var angle = (i * 60 - 90) * Math.PI / 180;
+        var value = values[i] * radius;
+        var x = centerX + value * Math.cos(angle);
+        var y = centerY + value * Math.sin(angle);
+        if (i === 0) {
+            ctx.moveTo(x, y);
+        } else {
+            ctx.lineTo(x, y);
+        }
+    }
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(102, 126, 234, 0.3)';
+    ctx.fill();
+    ctx.strokeStyle = '#667eea';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    
+    // 绘制数据点
+    for (var i = 0; i < 6; i++) {
+        var angle = (i * 60 - 90) * Math.PI / 180;
+        var value = values[i] * radius;
+        var x = centerX + value * Math.cos(angle);
+        var y = centerY + value * Math.sin(angle);
+        
+        ctx.beginPath();
+        ctx.arc(x, y, 4, 0, 2 * Math.PI);
+        ctx.fillStyle = '#667eea';
+        ctx.fill();
+        ctx.strokeStyle = 'white';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+    }
+    
+    // 绘制标签
+    ctx.font = '12px "PingFang SC"';
+    ctx.fillStyle = '#718096';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    
+    for (var i = 0; i < 6; i++) {
+        var angle = (i * 60 - 90) * Math.PI / 180;
+        var labelX = centerX + (radius + 20) * Math.cos(angle);
+        var labelY = centerY + (radius + 20) * Math.sin(angle);
+        ctx.fillText(labels[i], labelX, labelY);
+    }
+}
+
 // 绑定事件
 function bindEvents() {
     startBtn.addEventListener('click', function() {
@@ -1764,11 +2124,9 @@ function renderQuestion() {
     questionText.innerText = q.text;
     currentQuestionSpan.innerText = currentQuestionIndex + 1;
     
-    // 更新进度条
     var progress = ((currentQuestionIndex + 1) / questions.length) * 100;
     progressFill.style.width = progress + '%';
 
-    // 生成选项HTML
     var optionsHtml = '';
     for (var i = 0; i < q.options.length; i++) {
         var opt = q.options[i];
@@ -1778,16 +2136,13 @@ function renderQuestion() {
     }
     optionsContainer.innerHTML = optionsHtml;
 
-    // 绑定选项点击
     var optionButtons = document.querySelectorAll('.option-btn');
     for (var i = 0; i < optionButtons.length; i++) {
         optionButtons[i].addEventListener('click', onOptionClick);
     }
 
-    // 更新点指示器
     updateDots();
 
-    // 控制上一题按钮显示
     if (currentQuestionIndex === 0) {
         prevBtn.style.visibility = 'hidden';
     } else {
@@ -1795,7 +2150,6 @@ function renderQuestion() {
     }
 }
 
-// 更新点指示器
 function updateDots() {
     var dotsHtml = '';
     for (var i = 0; i < questions.length; i++) {
@@ -1805,13 +2159,11 @@ function updateDots() {
     dotsContainer.innerHTML = dotsHtml;
 }
 
-// 选项点击处理
 function onOptionClick(e) {
     var optIndex = parseInt(e.target.getAttribute('data-opt-index'));
     var q = questions[currentQuestionIndex];
     var prevSelected = selectedOptions[currentQuestionIndex];
 
-    // 如果之前选过，减去之前的分数
     if (prevSelected !== undefined) {
         var prevOpt = q.options[prevSelected];
         for (var cityId in prevOpt.scores) {
@@ -1821,7 +2173,6 @@ function onOptionClick(e) {
         }
     }
 
-    // 加上新选的分数
     var newOpt = q.options[optIndex];
     for (var cityId in newOpt.scores) {
         if (userScores[cityId] !== undefined) {
@@ -1829,17 +2180,14 @@ function onOptionClick(e) {
         }
     }
 
-    // 记录选择
     selectedOptions[currentQuestionIndex] = optIndex;
 
-    // 更新样式
     var allOptions = document.querySelectorAll('.option-btn');
     for (var i = 0; i < allOptions.length; i++) {
         allOptions[i].classList.remove('selected');
     }
     e.target.classList.add('selected');
 
-    // 自动跳转
     if (currentQuestionIndex < questions.length - 1) {
         currentQuestionIndex++;
         renderQuestion();
@@ -1848,19 +2196,7 @@ function onOptionClick(e) {
     }
 }
 
-// 生成匹配理由
-function generateMatchReason(city, matchRate) {
-    var reasons = [
-        city.name + '与你有着' + matchRate + '%的契合度。' + city.desc.split('，')[0] + '，这正是你内心向往的生活状态。',
-        '你的性格特质与' + city.name + '的城市气质不谋而合。' + city.tags.slice(0, 2).join('、') + '，都是你价值观的体现。',
-        '根据你的选择，你更倾向于' + (matchRate > 90 ? '追求品质生活' : '平衡工作与生活') + '，这与' + city.name + '的城市理念高度一致。'
-    ];
-    return reasons[Math.floor(Math.random() * reasons.length)];
-}
-
-// 显示结果
 function showResult() {
-    // 计算所有城市得分
     var cityScores = [];
     for (var i = 0; i < cities.length; i++) {
         var city = cities[i];
@@ -1876,45 +2212,35 @@ function showResult() {
         });
     }
     
-    // 按得分排序
     cityScores.sort(function(a, b) {
         return b.score - a.score;
     });
     
-    // 取前4名
     var topCity = cityScores[0];
     var otherCitiesList = cityScores.slice(1, 4);
     
-    // 计算匹配度（转换为百分比）
-    var maxPossibleScore = 20 * 3 * 2; // 20题 × 最高3分 × 平均每题可选2个城市
+    var maxPossibleScore = 30 * 3 * 2;
     var matchRate = Math.min(99, Math.round((topCity.score / maxPossibleScore) * 100) + 60);
     
-    // 找到完整城市信息
     var bestCity = cities.find(c => c.id === topCity.id);
     
-    // 生成匹配理由
-    var reason = generateMatchReason(bestCity, matchRate);
+    var reason = generateMatchReason(bestCity, matchRate, userScores);
     
-    // 更新结果页
     resultCityIcon.innerText = bestCity.icon || '🏙️';
     resultCity.innerText = bestCity.name;
     resultDesc.innerText = bestCity.desc;
     
-    // 生成标签
     var tagsHtml = '';
     for (var i = 0; i < bestCity.tags.length; i++) {
         tagsHtml += '<span class="tag">#' + bestCity.tags[i] + '</span>';
     }
     resultTags.innerHTML = tagsHtml;
     
-    // 更新匹配度
     matchFill.style.width = matchRate + '%';
     matchNumber.innerText = matchRate + '%';
     
-    // 显示匹配理由
     matchReason.innerText = reason;
     
-    // 生成特色列表
     var featuresHtml = '';
     if (bestCity.features) {
         for (var i = 0; i < bestCity.features.length; i++) {
@@ -1923,7 +2249,6 @@ function showResult() {
     }
     cityFeatures.innerHTML = featuresHtml;
     
-    // 显示其他推荐城市
     var otherCitiesHtml = '';
     for (var i = 0; i < otherCitiesList.length; i++) {
         var city = otherCitiesList[i];
@@ -1944,36 +2269,34 @@ function showResult() {
     }
     otherCities.innerHTML = otherCitiesHtml;
     
-    // 切换到结果页
     quizScreen.classList.remove('active');
     resultScreen.classList.add('active');
     
-    // 预填海报内容
     posterCity.innerText = bestCity.name;
     posterQuote.innerText = bestCity.shortDesc || bestCity.tags.slice(0, 2).join(' · ');
     posterDesc.innerText = bestCity.desc.split('，')[0] + '…';
     
-    // 海报标签
     var posterTagsHtml = '';
     for (var i = 0; i < Math.min(3, bestCity.tags.length); i++) {
         posterTagsHtml += '<span class="poster-tag">#' + bestCity.tags[i] + '</span>';
     }
     posterTags.innerHTML = posterTagsHtml;
     
-    // 日期
     var today = new Date();
     var year = today.getFullYear();
     var month = today.getMonth() + 1;
     var day = today.getDate();
     posterDate.innerText = year + '年' + month + '月' + day + '日';
+    
+    setTimeout(function() {
+        drawRadarChart(bestCity, matchRate);
+    }, 100);
 }
 
-// 重新测试
 function restartTest() {
     currentQuestionIndex = 0;
     selectedOptions = [];
     
-    // 重置分数
     for (var i = 0; i < cities.length; i++) {
         userScores[cities[i].id] = 0;
     }
@@ -1983,7 +2306,6 @@ function restartTest() {
     renderQuestion();
 }
 
-// 生成海报
 function generatePoster() {
     var posterContainer = document.getElementById('poster-container');
     posterContainer.style.display = 'block';
@@ -1995,13 +2317,11 @@ function generatePoster() {
         allowTaint: false,
         useCORS: true
     }).then(function(canvas) {
-        // 创建下载链接
         var link = document.createElement('a');
         link.download = '我的城市归宿-' + posterCity.innerText + '.png';
         link.href = canvas.toDataURL('image/png');
         link.click();
 
-        // 隐藏海报
         posterContainer.style.display = 'none';
     }).catch(function(error) {
         console.log('生成海报失败:', error);
@@ -2010,13 +2330,9 @@ function generatePoster() {
     });
 }
 
-// 页面加载完成后启动
 window.onload = function() {
     bindEvents();
 };
 </script>
 </body>
-
 </html>
-
-
