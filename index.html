@@ -1678,12 +1678,12 @@ const questions = [
         ]
     },
     {
-        text: '你希望城市空气质量如何？',
+        text: '你更看重自然环境的哪个方面？',
         options: [
-            { text: '必须很好，影响健康', scores: { xiamen: 3, qingdao: 3, kunming: 3, haikou: 2 } },
-            { text: '中等即可，不太敏感', scores: { beijing: 1, shanghai: 1, guangzhou: 1, shenzhen: 1 } },
-            { text: '希望能经常看到蓝天', scores: { hangzhou: 2, chengdu: 2, nanjing: 1, wuhan: 1 } },
-            { text: '有空气净化器就行', scores: { beijing: 2, shanghai: 2, tianjin: 1, zhengzhou: 1 } }
+            { text: '空气质量第一，要纯净', scores: { kunming: 3, xiamen: 3, qingdao: 2, haikou: 2 } },
+            { text: '绿化覆盖率，要养眼', scores: { hangzhou: 3, nanjing: 2, suzhou: 2, guilin: 2 } },
+            { text: '水系丰富，要灵动', scores: { hangzhou: 2, suzhou: 2, wuhan: 2, chongqing: 1 } },
+            { text: '四季分明，要变化', scores: { beijing: 2, xian: 2, haerbin: 2, shenyang: 2 } }
         ]
     },
 
@@ -1750,12 +1750,12 @@ const questions = [
     },
     // 25：空气质量
     {
-        text: '你对空气质量的要求？',
+        text: '你对城市水资源和水质的关注度？',
         options: [
-            { text: '必须优良，影响健康', scores: { xiamen: 3, qingdao: 3, kunming: 3, haikou: 2 } },
-            { text: '中等即可，不太敏感', scores: { beijing: 1, shanghai: 1, guangzhou: 1, shenzhen: 1 } },
-            { text: '希望能经常看到蓝天', scores: { hangzhou: 2, chengdu: 2, nanjing: 1, wuhan: 1 } },
-            { text: '有空气净化器就行', scores: { beijing: 2, shanghai: 2, tianjin: 1, zhengzhou: 1 } }
+            { text: '非常重要，喜欢水系丰富的城市', scores: { hangzhou: 3, suzhou: 3, wuhan: 2, chongqing: 2 } },
+            { text: '比较重要，要有江河湖海', scores: { qingdao: 3, xiamen: 3, dalian: 2, shanghai: 2 } },
+            { text: '一般，不影响生活就行', scores: { beijing: 1, xian: 1, chengdu: 1, shenzhen: 1 } },
+            { text: '不太在意，有自来水就行', scores: { zhengzhou: 1, hefei: 1, jinan: 2, tianjin: 1 } }
         ]
     },
     // 26：噪音接受度
@@ -2356,5 +2356,6 @@ window.onload = function() {
 </script>
 </body>
 </html>
+
 
 
